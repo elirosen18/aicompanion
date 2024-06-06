@@ -1,11 +1,12 @@
 import dotenv from "dotenv";
-import { StreamingTextResponse, LangChainStream } from "ai";
-import { auth, currentUser } from "@clerk/nextjs";
-import { Replicate } from "langchain/llms/replicate";
-import { CallbackManager } from "langchain/callbacks";
+import { StreamingTextResponse, generateText, streamText } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { currentUser } from "@clerk/nextjs";
+// import { Replicate } from "langchain/llms/replicate";
+// import { CallbackManager } from "langchain/callbacks";
 import { NextResponse } from "next/server";
 
-import { MemoryManager } from "@/lib/memory";
+// import { MemoryManager } from "@/lib/memory";
 import { ratelimit } from "@/lib/rate-limit";
 import prismadb from "@/lib/prismadb";
 
@@ -43,112 +44,119 @@ export async function POST(
 
     if (!companion)
       return new NextResponse("Companion Not Found.", { status: 404 });
+    //
+    // const name = companion.id;
+    // const companion_file_name = name + ".txt";
+    //
+    // const companionKey = {
+    //   companionName: name,
+    //   userId: user.id,
+    //   modelName: "llama2-13b"
+    // };
 
-    const name = companion.id;
-    const companion_file_name = name + ".txt";
+    // const memoryManager = await MemoryManager.getInstance();
+    //
+    // const records = await memoryManager.readLatestHistory(companionKey);
+    //
+    // if (records.length === 0)
+    //   await memoryManager.seedChatHistory(companion.seed, "\n\n", companionKey);
+    //
+    // await memoryManager.writeToHistory("User: " + prompt + "\n", companionKey);
 
-    const companionKey = {
-      companionName: name,
-      userId: user.id,
-      modelName: "llama2-13b"
-    };
+    // const recentChatHistory = await memoryManager.readLatestHistory(
+    //   companionKey
+    // );
 
-    const memoryManager = await MemoryManager.getInstance();
+    // const similarDocs = await memoryManager.vectorSearch(
+    //   recentChatHistory,
+    //   companion_file_name
+    // );
 
-    const records = await memoryManager.readLatestHistory(companionKey);
-
-    if (records.length === 0)
-      await memoryManager.seedChatHistory(companion.seed, "\n\n", companionKey);
-
-    await memoryManager.writeToHistory("User: " + prompt + "\n", companionKey);
-
-    const recentChatHistory = await memoryManager.readLatestHistory(
-      companionKey
-    );
-
-    const similarDocs = await memoryManager.vectorSearch(
-      recentChatHistory,
-      companion_file_name
-    );
-
-    let relevantHistory = "";
+    // let relevantHistory = "";
 
     //if (!!similarDocs && similarDocs.length !== 0)
       //relevantHistory = similarDocs.map((doc) => doc.pageContent).join("\n");
-
-    const { handlers } = LangChainStream();
-
-    const model = new Replicate({
-      model:
-        "a16z-infra/llama-2-13b-chat:df7690f1994d94e96ad9d568eac121aecf50684a0b0963b25a41cc40061269e5",
-      input: {
-        max_length: 2048
-      },
-      apiKey: process.env.REPLICATE_API_TOKEN,
-      callbackManager: CallbackManager.fromHandlers(handlers)
+    const text = await streamText({
+        model: openai("gpt-4o"),
+        system: companion.instructions,
+        prompt: prompt,
     });
+    
+    console.log(text);
 
-    model.verbose = true;
+    // const { handlers } = LangChainStream();
 
-    const resp = String(
-      await model
-        .call(
-          `
-        ONLY generate plain sentences without prefix of who is speaking. DO NOT use ${companion.name}: prefix. 
+    // const model = new Replicate({
+    //   model:
+    //     "a16z-infra/llama-2-13b-chat:df7690f1994d94e96ad9d568eac121aecf50684a0b0963b25a41cc40061269e5",
+    //   input: {
+    //     max_length: 2048
+    //   },
+    //   apiKey: process.env.REPLICATE_API_TOKEN,
+    //   callbackManager: CallbackManager.fromHandlers(handlers)
+    // });
 
-        ${companion.instructions}
+    // model.verbose = true;
+    //
+    // const resp = String(
+    //   await model
+    //     .call(
+    //       `
+    //     ONLY generate plain sentences without prefix of who is speaking. DO NOT use ${companion.name}: prefix. 
+    //
+    //     ${companion.instructions}
+    //
+    //     Below are relevant details about ${companion.name}'s past and the conversation you are in.
+    //     ${relevantHistory}
+    //
+    //
+    //     ${recentChatHistory}\n${companion.name}:`
+    //     )
+    // );
 
-        Below are relevant details about ${companion.name}'s past and the conversation you are in.
-        ${relevantHistory}
+    // const cleaned = text.replaceAll(",", "");
+    // const chunks = cleaned.split("\n");
+    // const response = chunks[0];
 
+    // await memoryManager.writeToHistory("" + response.trim(), companionKey);
+    // var Readable = require("stream").Readable;
+    //
+    //
+    //
+    // if (response !== undefined && response.length > 1) {
+    //   // memoryManager.writeToHistory("" + response.trim(), companionKey);
+    //
+    //   await prismadb.companion.update({
+    //     where: {
+    //       id: params.chatId
+    //     },
+    //     data: {
+    //       messages: {
+    //         create: {
+    //           content: response.trim(),
+    //           role: "system",
+    //           userId: user.id
+    //         }
+    //       }
+    //     }
+    //   });
+    // }
 
-        ${recentChatHistory}\n${companion.name}:`
-        )
-    );
-
-    const cleaned = resp.replaceAll(",", "");
-    const chunks = cleaned.split("\n");
-    const response = chunks[0];
-
-    await memoryManager.writeToHistory("" + response.trim(), companionKey);
-    var Readable = require("stream").Readable;
-
-
-
-    if (response !== undefined && response.length > 1) {
-      memoryManager.writeToHistory("" + response.trim(), companionKey);
-
-      await prismadb.companion.update({
-        where: {
-          id: params.chatId
-        },
-        data: {
-          messages: {
-            create: {
-              content: response.trim(),
-              role: "system",
-              userId: user.id
-            }
-          }
-        }
-      });
-    }
-
-    const stream = new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode(response.trim()));
-        controller.close();
-      },
-    });
+    // const stream = new ReadableStream({
+    //   start(controller) {
+    //     controller.enqueue(new TextEncoder().encode(response.trim()));
+    //     controller.close();
+    //   },
+    // });
 
     // let stream = new Readable();
     // let thing = new TextEncoder().encode(response.trim());
     // stream.push(thing);
     //stream.push(null)
 
-    console.log(response);
-    console.log("returning");
-    return new StreamingTextResponse(stream);
+    // console.log(response);
+    // console.log("returning");
+    return new StreamingTextResponse(text.toAIStream());
   } catch (error) {
     console.log("[CHAT_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
