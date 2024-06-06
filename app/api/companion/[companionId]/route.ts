@@ -32,8 +32,8 @@ export async function PATCH(
       return new NextResponse("Missing Required Field.", { status: 400 });
     }
 
-    const isPro = await checkSubscription();
-
+    //const isPro = await checkSubscription();
+    const isPro = true;
     if (!isPro) {
       return new NextResponse(
         "Pro Subscription is Required to Create New Companion.",
@@ -60,7 +60,7 @@ export async function PATCH(
 
     return NextResponse.json(companion);
   } catch (error) {
-    console.error("[COMPANION_PATCH]", error);
+    console.log("[COMPANION_PATCH]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

@@ -3,7 +3,7 @@
 import React, { FormEvent, useState } from "react";
 import { Companion, Message } from "@prisma/client";
 import { useRouter } from "next/navigation";
-import { useCompletion } from "ai/react";
+import { useCompletion, useChat } from "ai/react";
 
 import ChatHeader from "@/components/chat-header";
 import ChatForm from "@/components/chat-form";
@@ -21,36 +21,61 @@ interface ChatClientProps {
 
 export default function ChatClient({ companion }: ChatClientProps) {
   const router = useRouter();
-  const [messages, setMessages] = useState<ChatMessageProps[]>(
-    companion.messages
-  );
+  const [messages, setMessages] = useState<ChatMessageProps[]>(companion.messages);
 
-  const { input, isLoading, handleInputChange, handleSubmit, setInput } =
-    useCompletion({
-      api: `/api/chat/${companion.id}`,
-      onFinish(prompt, completion) {
-        const systemMessage: ChatMessageProps = {
-          role: "system",
-          content: completion
-        };
+  const { input, isLoading, handleInputChange, handleSubmit, setInput } = useCompletion({
+    api: `/api/chat/${companion.id}`,
+    onFinish(prompt, result) {
+      const systemMessage: ChatMessageProps = {
+        role: "system",
+        content: result
+      };
 
-        setMessages((current) => [...current, systemMessage]);
-        setInput("");
+      setMessages((current) => [...current, systemMessage]);
+      setInput("");
 
-        router.refresh();
-      }
-    });
+      console.log("Finished streaming message:", result);
 
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+      console.log(result, prompt);
+      router.refresh();
+    }
+  });
+
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // Prevent default form submission
+  
+    if (!input.trim()) {
+      // Validate input
+      console.error("Input cannot be empty");
+      return;
+    }
+  
     const userMessage: ChatMessageProps = {
       role: "user",
       content: input
     };
-
+  
     setMessages((current) => [...current, userMessage]);
-
-    handleSubmit(e);
+  
+    //try {
+      await handleSubmit(e); // Ensure handleSubmit is an async function
+    /*} catch (error) {
+      console.error("Error submitting message:", error);
+      if (error instanceof Response) {
+        try {
+          const errorData = await error.json();
+          console.error("Error details:", errorData);
+        } catch (jsonError) {
+          console.error("Error parsing JSON response:", jsonError);
+        }
+      } else if (error instanceof Error) {
+        console.error("Error message:", error.message);
+      } else {
+        console.error("Unexpected error:", error);
+      }
+    *///}
   };
+  
 
   return (
     <div className="flex flex-col h-full p-4 space-y-2">

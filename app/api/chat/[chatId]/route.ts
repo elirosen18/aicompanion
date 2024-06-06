@@ -73,8 +73,8 @@ export async function POST(
 
     let relevantHistory = "";
 
-    if (!!similarDocs && similarDocs.length !== 0)
-      relevantHistory = similarDocs.map((doc) => doc.pageContent).join("\n");
+    //if (!!similarDocs && similarDocs.length !== 0)
+      //relevantHistory = similarDocs.map((doc) => doc.pageContent).join("\n");
 
     const { handlers } = LangChainStream();
 
@@ -104,7 +104,6 @@ export async function POST(
 
         ${recentChatHistory}\n${companion.name}:`
         )
-        .catch(console.error)
     );
 
     const cleaned = resp.replaceAll(",", "");
@@ -114,9 +113,7 @@ export async function POST(
     await memoryManager.writeToHistory("" + response.trim(), companionKey);
     var Readable = require("stream").Readable;
 
-    let stream = new Readable();
-    stream.push(response);
-    stream.push(null);
+
 
     if (response !== undefined && response.length > 1) {
       memoryManager.writeToHistory("" + response.trim(), companionKey);
@@ -136,10 +133,17 @@ export async function POST(
         }
       });
     }
+    let stream = new Readable();
+    stream.push(response.trim());
+    //stream.push(null)
 
+    const result = 
+
+    console.log(response);
+    console.log("returning");
     return new StreamingTextResponse(stream);
   } catch (error) {
-    console.error("[CHAT_POST]", error);
+    console.log("[CHAT_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

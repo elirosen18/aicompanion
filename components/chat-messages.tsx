@@ -25,7 +25,7 @@ export default function ChatMessages({
   useEffect(() => {
     const timeout = setTimeout(() => {
       setFakeLoading(false);
-    }, 1000);
+    }, 10000);
 
     return () => {
       clearTimeout(timeout);
@@ -44,9 +44,9 @@ export default function ChatMessages({
         role="system"
         content={`Hello, I'm ${companion.name}, ${companion.description}.`}
       />
-      {messages.map((message) => (
+      {messages.map((message, index) => (
         <ChatMessage
-          key={message.content}
+          key={`${message.content}-${index}`} // Ensure unique keys
           role={message.role}
           content={message.content}
           src={companion.src}
