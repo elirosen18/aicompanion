@@ -19,7 +19,7 @@ export async function POST(
     const { prompt } = await request.json();
     const user = await currentUser();
 
-    if (!user || !user.firstName || !user.id)
+    if (!user || !user.username || !user.id)
       return new NextResponse("Unauthorized!", { status: 401 });
 
     const identifier = request.url + "-" + user.id;
@@ -133,11 +133,18 @@ export async function POST(
         }
       });
     }
-    let stream = new Readable();
-    stream.push(response.trim());
-    //stream.push(null)
 
-    const result = 
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(response.trim()));
+        controller.close();
+      },
+    });
+
+    // let stream = new Readable();
+    // let thing = new TextEncoder().encode(response.trim());
+    // stream.push(thing);
+    //stream.push(null)
 
     console.log(response);
     console.log("returning");
