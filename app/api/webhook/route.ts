@@ -4,20 +4,21 @@ import { NextResponse } from "next/server";
 
 import prismadb from "@/lib/prismadb";
 import { stripe } from "@/lib/stripe";
+import { Buffer } from "buffer";
+import { NextApiRequest } from "next";
 
 export async function POST(req: Request) {
   const body = await req.text();
-  const signature = headers().get("Stripe-Signature") as string;
+  const signature = req.headers.get('stripe-signature') as string;
 
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    //const body = await buffer(req);
+    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET as string);
   } catch (error: any) {
+    // On error, log and return the error message
+    console.log(`❌ Error message: ${error.message}`);
     return new NextResponse(`Webhook Error: ${error.message}`, { status: 400 });
   }
 
@@ -27,6 +28,8 @@ export async function POST(req: Request) {
     const subscription = await stripe.subscriptions.retrieve(
       session.subscription as string
     );
+  console.log("completed");
+
 
     if (!session?.metadata?.userId) {
       return new NextResponse("User ID is Required.", { status: 400 });
@@ -43,9 +46,14 @@ export async function POST(req: Request) {
     });
   }
 if (event.type === "invoice.payment_succeeded") {
+  console.log(session.subscription);
+  console.log("payment succeeded");
+
     const subscription = await stripe.subscriptions.retrieve(
       session.subscription as string
     );
+
+    console.log("payment succeeded");
 
     await prismadb.userSubscription.update({
       where: {
@@ -58,6 +66,5 @@ if (event.type === "invoice.payment_succeeded") {
     });
   }
 
-  console.log(event.type)
   return new NextResponse(null, { status: 200 });
 }
