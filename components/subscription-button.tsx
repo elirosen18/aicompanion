@@ -22,11 +22,6 @@ export default function SubscriptionButton({ isPro }: SubscriptionButtonProps) {
       const response = await axios.get("/api/stripe");
 
       window.location.href = response.data.url;
-    } catch (error) {
-      toast({
-        description: "Something Went Wrong!",
-        variant: "destructive"
-      });
     } finally {
       setLoading(false);
     }
@@ -40,7 +35,7 @@ export default function SubscriptionButton({ isPro }: SubscriptionButtonProps) {
       disabled={loading}
       onClick={onClick}
     >
-      {isPro ? "Manage Subscription" : "Upgrade"}
+      {isPro ? "Downgrade" : "Upgrade"}
       {!isPro && <Sparkles className="w-4 h-4 ml-2 fill-white" />}
     </Button>
   );

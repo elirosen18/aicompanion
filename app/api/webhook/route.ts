@@ -66,5 +66,19 @@ if (event.type === "invoice.payment_succeeded") {
     });
   }
 
+  if (event.type === "customer.subscription.deleted") {
+    const subscription = await stripe.subscriptions.retrieve(
+      session.subscription as string
+    );
+
+    console.log("subscription deleted", subscription.id);
+
+    await prismadb.userSubscription.delete({
+      where: {
+        stripeSubscriptionId: subscription.id
+      }
+    });
+  }
+
   return new NextResponse(null, { status: 200 });
 }
