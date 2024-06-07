@@ -44,118 +44,31 @@ export async function POST(
 
     if (!companion)
       return new NextResponse("Companion Not Found.", { status: 404 });
-    //
-    // const name = companion.id;
-    // const companion_file_name = name + ".txt";
-    //
-    // const companionKey = {
-    //   companionName: name,
-    //   userId: user.id,
-    //   modelName: "llama2-13b"
-    // };
-
-    // const memoryManager = await MemoryManager.getInstance();
-    //
-    // const records = await memoryManager.readLatestHistory(companionKey);
-    //
-    // if (records.length === 0)
-    //   await memoryManager.seedChatHistory(companion.seed, "\n\n", companionKey);
-    //
-    // await memoryManager.writeToHistory("User: " + prompt + "\n", companionKey);
-
-    // const recentChatHistory = await memoryManager.readLatestHistory(
-    //   companionKey
-    // );
-
-    // const similarDocs = await memoryManager.vectorSearch(
-    //   recentChatHistory,
-    //   companion_file_name
-    // );
-
-    // let relevantHistory = "";
-
-    //if (!!similarDocs && similarDocs.length !== 0)
-      //relevantHistory = similarDocs.map((doc) => doc.pageContent).join("\n");
+   
     const text = await streamText({
         model: openai("gpt-4o"),
         system: companion.instructions,
         prompt: prompt,
+        async onFinish({text}) {
+
+      await prismadb.companion.update({
+        where: {
+          id: params.chatId
+        },
+        data: {
+          messages: {
+            create: {
+              content: text,
+              role: "system",
+              userId: user.id
+            }
+          }
+        }
+      });
+        }
     });
-    
-    console.log(text);
 
-    // const { handlers } = LangChainStream();
 
-    // const model = new Replicate({
-    //   model:
-    //     "a16z-infra/llama-2-13b-chat:df7690f1994d94e96ad9d568eac121aecf50684a0b0963b25a41cc40061269e5",
-    //   input: {
-    //     max_length: 2048
-    //   },
-    //   apiKey: process.env.REPLICATE_API_TOKEN,
-    //   callbackManager: CallbackManager.fromHandlers(handlers)
-    // });
-
-    // model.verbose = true;
-    //
-    // const resp = String(
-    //   await model
-    //     .call(
-    //       `
-    //     ONLY generate plain sentences without prefix of who is speaking. DO NOT use ${companion.name}: prefix. 
-    //
-    //     ${companion.instructions}
-    //
-    //     Below are relevant details about ${companion.name}'s past and the conversation you are in.
-    //     ${relevantHistory}
-    //
-    //
-    //     ${recentChatHistory}\n${companion.name}:`
-    //     )
-    // );
-
-    // const cleaned = text.replaceAll(",", "");
-    // const chunks = cleaned.split("\n");
-    // const response = chunks[0];
-
-    // await memoryManager.writeToHistory("" + response.trim(), companionKey);
-    // var Readable = require("stream").Readable;
-    //
-    //
-    //
-    // if (response !== undefined && response.length > 1) {
-    //   // memoryManager.writeToHistory("" + response.trim(), companionKey);
-    //
-    //   await prismadb.companion.update({
-    //     where: {
-    //       id: params.chatId
-    //     },
-    //     data: {
-    //       messages: {
-    //         create: {
-    //           content: response.trim(),
-    //           role: "system",
-    //           userId: user.id
-    //         }
-    //       }
-    //     }
-    //   });
-    // }
-
-    // const stream = new ReadableStream({
-    //   start(controller) {
-    //     controller.enqueue(new TextEncoder().encode(response.trim()));
-    //     controller.close();
-    //   },
-    // });
-
-    // let stream = new Readable();
-    // let thing = new TextEncoder().encode(response.trim());
-    // stream.push(thing);
-    //stream.push(null)
-
-    // console.log(response);
-    // console.log("returning");
     return new StreamingTextResponse(text.toAIStream());
   } catch (error) {
     console.log("[CHAT_POST]", error);
