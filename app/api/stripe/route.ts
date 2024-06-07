@@ -35,6 +35,7 @@ export async function GET() {
       success_url: settingsUrl,
       cancel_url: settingsUrl,
       payment_method_types: ["card"],
+      payment_method_collection: "if_required",
       mode: "subscription",
       billing_address_collection: "auto",
       customer_email: user.emailAddresses[0].emailAddress,
@@ -56,6 +57,15 @@ export async function GET() {
       ],
       metadata: {
         userId
+      },
+      subscription_data: {
+        trial_period_days: 7,
+       // trial_from_plan: true,
+        trial_settings: {
+          end_behavior: {
+            missing_payment_method: "pause"
+          }
+        }
       }
     });
 

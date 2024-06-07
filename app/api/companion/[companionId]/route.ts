@@ -32,7 +32,7 @@ export async function PATCH(
       return new NextResponse("Missing Required Field.", { status: 400 });
     }
 
-    //const isPro = await checkSubscription();
+    //const  = await checkSubscription();
     const isPro = true;
     if (!isPro) {
       return new NextResponse(

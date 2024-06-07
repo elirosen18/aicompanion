@@ -10,9 +10,9 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
- // const isPro = await checkSubscription();
+  const isPro = await checkSubscription();
 
- const isPro = true;
+ //const isPro = true;
 
   return (
     <div className="h-full">

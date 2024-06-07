@@ -27,8 +27,8 @@ export async function POST(req: Request) {
       return new NextResponse("Missing Required Field.", { status: 400 });
     }
 
-    // const isPro = await checkSubscription();
-       const isPro= true
+     const isPro = await checkSubscription();
+      // const isPro= true
 
     if (!isPro) {
       return new NextResponse(
